@@ -4,14 +4,14 @@
   "kv_namespaces": [
     {
       "binding": "KV",
-      "id": "misub-kv"
+      "id": "0ffccaae85ed4782b8cd6b59a4557cdd"
     }
   ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "misub-db",
-      "database_id": "misub-db"
+      "database_id": "ef02e828-57ca-4528-902a-7b8fa5da44ef"
     }
   ]
 }
