@@ -9,6 +9,7 @@ import { parseNodeInfo, extractNodeRegion } from './geo-utils.js';
 // 所以需要向上两级找到 functions/utils/
 import { fixNodeUrlEncoding } from '../../utils/node-utils.js';
 import { convertClashProxyToUrl } from '../../utils/clash-to-url.js';
+import { encodeNinjaProxy, extractNinjaPassInfo } from '../../utils/ninja-node-codec.js';
 import { validateSS2022Node, fixSS2022Node } from './ss2022-validator.js';
 import { extractNodeMetadata } from './metadata-extractor.js';
 
@@ -16,7 +17,7 @@ import { extractNodeMetadata } from './metadata-extractor.js';
  * 支持的节点协议正则表达式
  */
 export const NODE_PROTOCOL_REGEX =
-    /^(ss|ssr|vmess|vless|trojan|hysteria2|hy2|hysteria|tuic|snell|naive\+https?|naive\+quic|socks5|socks|http|anytls|wireguard):\/\//i;
+    /^(ss|ssr|vmess|vless|trojan|hysteria2|hy2|hysteria|tuic|snell|naive\+https?|naive\+quic|socks5|socks|http|anytls|wireguard|ninja):\/\//i;
 
 /**
  * 尝试解析 Surge 或 Quantumult X 格式的节点字符串
@@ -199,8 +200,12 @@ export function extractValidNodes(text) {
             const proxies = yamlObj.proxies || yamlObj.Proxy;
 
             if (Array.isArray(proxies)) {
+                const ninjaPassInfo = extractNinjaPassInfo(text);
                 proxies.forEach((proxy) => {
-                    const url = convertClashProxyToUrl(proxy);
+                    const url =
+                        String(proxy?.type || '').toLowerCase() === 'ninja'
+                            ? encodeNinjaProxy(proxy, ninjaPassInfo)
+                            : convertClashProxyToUrl(proxy);
                     if (url) nodes.push(url);
                 });
                 // 如果成功解析出节点，直接返回，不再尝试其他方式
