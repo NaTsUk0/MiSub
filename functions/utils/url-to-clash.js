@@ -4,6 +4,7 @@
 
 import { extractNodeMetadata } from '../modules/utils/metadata-extractor.js';
 import { isLocalProxyEndpoint } from './node-utils.js';
+import { decodeNinjaProxy } from './ninja-node-codec.js';
 
 const VIRTUAL_INFO_NODE_PASSWORD = '00000000-0000-0000-0000-000000000000';
 
@@ -1446,7 +1447,12 @@ export function urlToClashProxy(url) {
 
     const lowerUrl = url.toLowerCase();
 
-    if (lowerUrl.startsWith('vless://')) {
+    if (lowerUrl.startsWith('ninja://node/')) {
+        const decoded = decodeNinjaProxy(url);
+        return decoded
+            ? { ...decoded.proxy, __ninjaPassInfo: decoded.passInfo, __isNinjaProxy: true }
+            : null;
+    } else if (lowerUrl.startsWith('vless://')) {
         return parseVlessUrl(url);
     } else if (lowerUrl.startsWith('trojan://')) {
         return parseTrojanUrl(url);
@@ -1491,6 +1497,13 @@ export function urlsToClashProxies(urls, options = {}) {
         .map((url) => {
             const proxy = urlToClashProxy(url);
             if (!proxy) return null;
+
+            // Ninja is an obfuscated Clash-native proxy type. Its fields must pass through
+            // byte-for-byte apart from an explicitly transformed display name.
+            if (proxy.__isNinjaProxy) {
+                proxy.metadata = extractNodeMetadata(proxy.name);
+                return proxy;
+            }
 
             // [URL 参数覆盖] 补全对 TFO/UDP/SCV 的映射
             if (options.enableTfo !== undefined) proxy.tfo = options.enableTfo;
