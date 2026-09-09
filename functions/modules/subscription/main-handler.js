@@ -799,7 +799,12 @@ export async function handleMisubRequest(context) {
         profileEngineMode: profileSub.engineMode,
         globalEngineMode: globalSub.engineMode,
     });
-    const isExternalMode = effectiveEngine === 'external';
+    // External subconverters do not understand MiSub's internal Ninja envelope and would
+    // discard the proprietary proxy fields and PASS-INFO. Keep Ninja profiles local.
+    const hasNinjaSource = targetMisubs.some((sub) =>
+        /clash-ninja/i.test(String(sub?.customUserAgent || ''))
+    );
+    const isExternalMode = effectiveEngine === 'external' && !hasNinjaSource;
     const useBuiltin = !isExternalMode;
     const { shouldSkipCertificateVerify, shouldEnableUdp } = resolveBuiltinEngineFlags(
         config,
