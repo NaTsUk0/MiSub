@@ -15,7 +15,7 @@ function buildSsrUrl(name = '台湾 1') {
         password: 'password',
         'obfs-param': 'microsoft.com',
         'protocol-param': 'user:pass',
-        udp: true
+        udp: true,
     });
 }
 
@@ -48,5 +48,116 @@ describe('node-utils', () => {
         expect(proxies).toHaveLength(1);
         expect(proxies[0].type).toBe('ssr');
         expect(proxies[0].name).toContain('台湾 1');
+    });
+
+    it('urlsToClashProxies 应过滤本机回环出口', () => {
+        const proxies = urlsToClashProxies([
+            'trojan://fake@127.0.0.1:443#伪节点',
+            'trojan://real@example.com:443#真实节点',
+        ]);
+
+        expect(proxies.map((proxy) => proxy.server)).toEqual(['example.com']);
+    });
+
+    it('TUIC 节点密码包含 URL 保留字符时应保持可回环解析', () => {
+        const proxy = {
+            name: 'TUIC Special',
+            type: 'tuic',
+            server: 'tuic.example.com',
+            port: 443,
+            uuid: '11111111-1111-1111-1111-111111111111',
+            password: 'p@ss:word%23?x',
+            sni: 'tuic.example.com',
+            alpn: ['h3'],
+            'skip-cert-verify': true,
+            'congestion-controller': 'bbr',
+            'udp-relay-mode': 'native',
+        };
+
+        const url = convertClashProxyToUrl(proxy);
+        const proxies = urlsToClashProxies([url]);
+
+        expect(url).toContain('p%40ss%3Aword%2523%3Fx');
+        expect(proxies).toHaveLength(1);
+        expect(proxies[0]).toMatchObject({
+            type: 'tuic',
+            server: proxy.server,
+            port: proxy.port,
+            uuid: proxy.uuid,
+            password: proxy.password,
+            sni: proxy.sni,
+            'congestion-controller': 'bbr',
+            'udp-relay-mode': 'native',
+        });
+        expect(proxies[0].alpn).toEqual(['h3']);
+    });
+
+    it('SS Clash YAML 节点的 obfs plugin-opts 应在 URL 转换中保留并可回环解析', () => {
+        const proxy = {
+            name: 'HK-1',
+            type: 'ss',
+            server: 'example.com',
+            port: 2400,
+            udp: true,
+            'udp-over-tcp': true,
+            cipher: 'chacha20-ietf-poly1305',
+            password: 'EG1dv6Hw9PCHv40QThZjFZmkHThfsUk9',
+            plugin: 'obfs',
+            'plugin-opts': {
+                mode: 'tls',
+                host: 'abcd.apple.com:215275',
+            },
+        };
+
+        const url = convertClashProxyToUrl(proxy);
+        const proxies = urlsToClashProxies([url]);
+
+        expect(url).toContain('plugin=obfs');
+        expect(url).toContain('obfs=tls');
+        expect(url).toContain('obfs-host=abcd.apple.com%3A215275');
+        expect(proxies).toHaveLength(1);
+        expect(proxies[0]).toMatchObject({
+            type: 'ss',
+            server: 'example.com',
+            port: 2400,
+            cipher: 'chacha20-ietf-poly1305',
+            password: 'EG1dv6Hw9PCHv40QThZjFZmkHThfsUk9',
+            plugin: 'obfs',
+            'plugin-opts': {
+                mode: 'tls',
+                host: 'abcd.apple.com:215275',
+            },
+        });
+    });
+
+    it('VLESS + XHTTP Clash 节点的 xhttp-opts 应在 URL 转换中保留 path/host/mode 并可回环解析', () => {
+        const proxy = {
+            name: 'XHTTP-1',
+            type: 'vless',
+            server: 'host.example.com',
+            port: 443,
+            uuid: 'u-u-i-d',
+            network: 'xhttp',
+            tls: true,
+            'xhttp-opts': {
+                path: '/argo',
+                host: 'example.org',
+                mode: 'packet-up',
+            },
+        };
+
+        const url = convertClashProxyToUrl(proxy);
+        const proxies = urlsToClashProxies([url]);
+
+        expect(url).toContain('type=xhttp');
+        expect(url).toContain('path=%2Fargo');
+        expect(url).toContain('host=example.org');
+        expect(url).toContain('mode=packet-up');
+        expect(proxies).toHaveLength(1);
+        expect(proxies[0]['xhttp-opts']).toMatchObject({
+            path: '/argo',
+            host: 'example.org',
+            mode: 'packet-up',
+        });
     });
 });

@@ -7,6 +7,7 @@ import { createStorageCache } from '../utils/cache-helper.js';
 import { DEFAULT_SETTINGS } from '../constants/default-settings.js';
 import { TIMING } from '../constants/timing.js';
 import { api } from '../lib/http.js';
+import { t } from '../i18n/index.js';
 
 const isDev = import.meta.env.DEV;
 
@@ -34,14 +35,14 @@ export const useDataStore = defineStore('data', () => {
     const isDirty = computed(() => editorStore.isDirty);
 
     // --- Getters ---
-    const activeSubscriptions = computed(() => subscriptions.value.filter(sub => sub.enabled));
-    const activeProfiles = computed(() => profiles.value.filter(profile => profile.enabled));
+    const activeSubscriptions = computed(() => subscriptions.value.filter((sub) => sub.enabled));
+    const activeProfiles = computed(() => profiles.value.filter((profile) => profile.enabled));
 
     // --- Internal: Snapshot for rollback/diffing ---
     let lastSavedData = {
         subscriptions: [],
         profiles: [],
-        ruleTemplates: []
+        ruleTemplates: [],
     };
 
     // --- Actions ---
@@ -51,7 +52,7 @@ export const useDataStore = defineStore('data', () => {
         if (!data) return false;
 
         try {
-            const cleanSubs = (data.misubs || []).map(sub => ({ ...sub, isUpdating: false }));
+            const cleanSubs = (data.misubs || []).map((sub) => ({ ...sub, isUpdating: false }));
             subscriptions.value = cleanSubs;
             profiles.value = data.profiles || [];
             ruleTemplates.value = data.ruleTemplates || [];
@@ -92,10 +93,9 @@ export const useDataStore = defineStore('data', () => {
             hydrateFromData(data); // Re-use hydration logic
             pruneInvalidReferences(); // 数据拉取后执行自愈
             clearDirty();
-
         } catch (error) {
             console.error('Failed to fetch data:', error);
-            showToast('获取数据失败: ' + error.message, 'error');
+            showToast(t('store.fetchDataFailed', { message: error.message }), 'error');
             throw error;
         } finally {
             isLoading.value = false;
@@ -104,36 +104,37 @@ export const useDataStore = defineStore('data', () => {
 
     async function saveData() {
         if (isLoading.value) {
-            showToast('操作过于频繁，请稍候...', 'warning');
+            showToast(t('store.tooFrequent'), 'warning');
             return;
         }
 
         isLoading.value = true;
         saveState.value = 'saving';
-        
+
         // 保存前执行数据自愈，确保发往后端的数据是干净的
         pruneInvalidReferences();
 
         try {
-            const sanitizedSubs = subscriptions.value.map(sub => {
+            const sanitizedSubs = subscriptions.value.map((sub) => {
                 const { isUpdating, ...rest } = sub;
                 return rest;
             });
 
             const payload = {
                 misubs: sanitizedSubs,
-                profiles: profiles.value.map(profile => {
+                profiles: profiles.value.map((profile) => {
                     const normalizedProfile = { ...profile };
-                    normalizedProfile.ruleLevel = normalizedProfile.ruleLevel || normalizedProfile.clashRuleLevel || '';
+                    normalizedProfile.ruleLevel =
+                        normalizedProfile.ruleLevel || normalizedProfile.clashRuleLevel || '';
                     delete normalizedProfile.clashRuleLevel;
                     return normalizedProfile;
-                })
+                }),
             };
 
             const result = await api.post('/api/misubs', payload);
 
             if (!result.success) {
-                throw new Error(result.message || '保存失败');
+                throw new Error(result.message || t('store.saveFailed'));
             }
 
             // Update local state with backend response (Source of Truth)
@@ -144,7 +145,7 @@ export const useDataStore = defineStore('data', () => {
 
             updateSnapshot();
 
-            showToast('数据已保存', 'success');
+            showToast(t('store.dataSaved'), 'success');
             lastUpdated.value = new Date();
             clearDirty();
             saveState.value = 'success';
@@ -158,18 +159,17 @@ export const useDataStore = defineStore('data', () => {
 
             // Update cache with the most recent merged data
             dataCache.set({
-                misubs: subscriptions.value.map(s => {
+                misubs: subscriptions.value.map((s) => {
                     const { isUpdating, ...rest } = s;
                     return rest;
                 }),
                 profiles: profiles.value,
                 ruleTemplates: ruleTemplates.value,
-                config: settingsStore.config
+                config: settingsStore.config,
             });
-
         } catch (error) {
             console.error('[Store] Failed to save data:', error);
-            showToast('保存数据失败: ' + error.message, 'error');
+            showToast(t('store.saveDataFailed', { message: error.message }), 'error');
             saveState.value = 'idle';
             throw error;
         } finally {
@@ -183,15 +183,18 @@ export const useDataStore = defineStore('data', () => {
             const result = await api.post('/api/settings', newSettings);
 
             if (!result.success) {
-                throw new Error(result.message || '保存设置失败');
+                throw new Error(result.message || t('store.saveSettingsFailed'));
             }
 
             settingsStore.updateConfig(newSettings);
-            showToast('设置已更新', 'success');
-
+            syncCachedConfig(settingsStore.config);
+            showToast(t('store.settingsUpdated'), 'success');
         } catch (error) {
             console.error('Failed to save settings:', error);
-            showToast('保存设置失败: ' + error.message, 'error');
+            showToast(
+                t('store.saveSettingsFailedWithMessage', { message: error.message }),
+                'error'
+            );
             throw error;
         } finally {
             editorStore.setLoading(false);
@@ -210,15 +213,18 @@ export const useDataStore = defineStore('data', () => {
         try {
             const result = await api.post('/api/rule_templates', { templates: items });
             if (!result.success) {
-                throw new Error(result.message || '保存自定义规则模板失败');
+                throw new Error(result.message || t('store.saveRuleTemplatesFailed'));
             }
             ruleTemplates.value = Array.isArray(result.data) ? result.data : [];
             lastSavedData.ruleTemplates = JSON.parse(JSON.stringify(ruleTemplates.value));
-            showToast('自定义规则模板已保存', 'success');
+            showToast(t('store.ruleTemplatesSaved'), 'success');
             return ruleTemplates.value;
         } catch (error) {
             console.error('Failed to save rule templates:', error);
-            showToast('保存自定义规则模板失败: ' + error.message, 'error');
+            showToast(
+                t('store.saveRuleTemplatesFailedWithMessage', { message: error.message }),
+                'error'
+            );
             throw error;
         } finally {
             editorStore.setLoading(false);
@@ -231,12 +237,25 @@ export const useDataStore = defineStore('data', () => {
         lastSavedData = {
             subscriptions: JSON.parse(JSON.stringify(subscriptions.value)),
             profiles: JSON.parse(JSON.stringify(profiles.value)),
-            ruleTemplates: JSON.parse(JSON.stringify(ruleTemplates.value))
+            ruleTemplates: JSON.parse(JSON.stringify(ruleTemplates.value)),
         };
     }
 
     function clearCachedData() {
         dataCache.clear();
+    }
+
+    function syncCachedConfig(nextConfig) {
+        const cachedData = dataCache.get();
+        if (!cachedData) return;
+
+        dataCache.set({
+            ...cachedData,
+            config: {
+                ...(cachedData.config || {}),
+                ...(nextConfig || {}),
+            },
+        });
     }
 
     // --- Proxy Actions (Mutators) ---
@@ -250,14 +269,14 @@ export const useDataStore = defineStore('data', () => {
     }
 
     function removeSubscription(id) {
-        const index = subscriptions.value.findIndex(s => s.id === id);
+        const index = subscriptions.value.findIndex((s) => s.id === id);
         if (index !== -1) {
             subscriptions.value.splice(index, 1);
         }
     }
 
     function updateSubscription(id, updates) {
-        const index = subscriptions.value.findIndex(s => s.id === id);
+        const index = subscriptions.value.findIndex((s) => s.id === id);
         if (index !== -1) {
             subscriptions.value[index] = { ...subscriptions.value[index], ...updates };
             markDirty();
@@ -273,7 +292,7 @@ export const useDataStore = defineStore('data', () => {
     }
 
     function removeProfile(id) {
-        const index = profiles.value.findIndex(p => p.id === id || p.customId === id);
+        const index = profiles.value.findIndex((p) => p.id === id || p.customId === id);
         if (index !== -1) {
             profiles.value.splice(index, 1);
         }
@@ -284,10 +303,10 @@ export const useDataStore = defineStore('data', () => {
         if (idsToRemove.size === 0) return;
 
         let modified = false;
-        profiles.value.forEach(profile => {
+        profiles.value.forEach((profile) => {
             if (Array.isArray(profile.manualNodes) && profile.manualNodes.length > 0) {
                 const originalLength = profile.manualNodes.length;
-                profile.manualNodes = profile.manualNodes.filter(id => !idsToRemove.has(id));
+                profile.manualNodes = profile.manualNodes.filter((id) => !idsToRemove.has(id));
                 if (profile.manualNodes.length !== originalLength) {
                     modified = true;
                 }
@@ -307,10 +326,10 @@ export const useDataStore = defineStore('data', () => {
         if (idsToRemove.size === 0) return;
 
         let modified = false;
-        profiles.value.forEach(profile => {
+        profiles.value.forEach((profile) => {
             if (Array.isArray(profile.subscriptions) && profile.subscriptions.length > 0) {
                 const originalLength = profile.subscriptions.length;
-                profile.subscriptions = profile.subscriptions.filter(id => !idsToRemove.has(id));
+                profile.subscriptions = profile.subscriptions.filter((id) => !idsToRemove.has(id));
                 if (profile.subscriptions.length !== originalLength) {
                     modified = true;
                 }
@@ -333,15 +352,15 @@ export const useDataStore = defineStore('data', () => {
         if (!profiles.value || profiles.value.length === 0) return;
 
         // 收集所有当前存在的订阅和手动节点 ID
-        const validIds = new Set(subscriptions.value.map(item => item.id));
-        
+        const validIds = new Set(subscriptions.value.map((item) => item.id));
+
         let modified = false;
-        profiles.value.forEach(profile => {
+        profiles.value.forEach((profile) => {
             // 1. 处理手动节点引用
             if (Array.isArray(profile.manualNodes) && profile.manualNodes.length > 0) {
                 const originalLength = profile.manualNodes.length;
                 const seenIds = new Set();
-                profile.manualNodes = profile.manualNodes.filter(id => {
+                profile.manualNodes = profile.manualNodes.filter((id) => {
                     // ID 必须存在且未被重复记录
                     if (validIds.has(id) && !seenIds.has(id)) {
                         seenIds.add(id);
@@ -358,7 +377,7 @@ export const useDataStore = defineStore('data', () => {
             if (Array.isArray(profile.subscriptions) && profile.subscriptions.length > 0) {
                 const originalLength = profile.subscriptions.length;
                 const seenIds = new Set();
-                profile.subscriptions = profile.subscriptions.filter(id => {
+                profile.subscriptions = profile.subscriptions.filter((id) => {
                     if (validIds.has(id) && !seenIds.has(id)) {
                         seenIds.add(id);
                         return true;
@@ -427,6 +446,6 @@ export const useDataStore = defineStore('data', () => {
         removeManualNodeFromProfiles,
         removeSubscriptionFromProfiles,
         markDirty,
-        clearDirty
+        clearDirty,
     };
 });

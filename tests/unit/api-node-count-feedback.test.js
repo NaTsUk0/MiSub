@@ -12,15 +12,15 @@ const mocks = vi.hoisted(() => {
 
     return {
         post: vi.fn(),
-        APIError: MockAPIError
+        APIError: MockAPIError,
     };
 });
 
 vi.mock('../../src/lib/http.js', () => ({
     api: {
-        post: mocks.post
+        post: mocks.post,
     },
-    APIError: mocks.APIError
+    APIError: mocks.APIError,
 }));
 
 describe('fetchNodeCount feedback normalization', () => {
@@ -34,7 +34,7 @@ describe('fetchNodeCount feedback normalization', () => {
             error: 'HTTP 403: Forbidden',
             errorType: 'server',
             count: 0,
-            userInfo: null
+            userInfo: null,
         });
 
         const { fetchNodeCount } = await import('../../src/lib/api.js');
@@ -46,25 +46,39 @@ describe('fetchNodeCount feedback normalization', () => {
     });
 
     it('keeps real HTTP status codes from failed API responses', async () => {
-        mocks.post.mockRejectedValue(new mocks.APIError('Forbidden', 403, { error: 'Forbidden' }));
+        const error = new mocks.APIError('Forbidden', 403, { error: 'Forbidden' });
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        mocks.post.mockRejectedValue(error);
 
         const { fetchNodeCount } = await import('../../src/lib/api.js');
-        const result = await fetchNodeCount('https://airport.example/sub');
+        try {
+            const result = await fetchNodeCount('https://airport.example/sub');
 
-        expect(result.success).toBe(false);
-        expect(result.error).toBe('HTTP 403: Forbidden');
-        expect(result.status).toBe(403);
+            expect(result.success).toBe(false);
+            expect(result.error).toBe('HTTP 403: Forbidden');
+            expect(result.status).toBe(403);
+            expect(errorSpy).toHaveBeenCalledWith('[API Error - fetchNodeCount]', error);
+        } finally {
+            errorSpy.mockRestore();
+        }
     });
 
     it('does not duplicate HTTP status prefixes from APIError messages', async () => {
-        mocks.post.mockRejectedValue(new mocks.APIError('HTTP 403: Forbidden', 403, { error: 'Forbidden' }));
+        const error = new mocks.APIError('HTTP 403: Forbidden', 403, { error: 'Forbidden' });
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        mocks.post.mockRejectedValue(error);
 
         const { fetchNodeCount } = await import('../../src/lib/api.js');
-        const result = await fetchNodeCount('https://airport.example/sub');
+        try {
+            const result = await fetchNodeCount('https://airport.example/sub');
 
-        expect(result.success).toBe(false);
-        expect(result.error).toBe('HTTP 403: Forbidden');
-        expect(result.error).not.toContain('HTTP 403: HTTP 403');
-        expect(result.status).toBe(403);
+            expect(result.success).toBe(false);
+            expect(result.error).toBe('HTTP 403: Forbidden');
+            expect(result.error).not.toContain('HTTP 403: HTTP 403');
+            expect(result.status).toBe(403);
+            expect(errorSpy).toHaveBeenCalledWith('[API Error - fetchNodeCount]', error);
+        } finally {
+            errorSpy.mockRestore();
+        }
     });
 });
