@@ -115,7 +115,7 @@
             0
         );
         const textVars = {
-            version: '2.7.0',
+            version: '2.7.1',
             title: props.config?.hero?.title1 || '',
             description: props.config?.hero?.description || '',
             profile_count: props.profiles.length,
