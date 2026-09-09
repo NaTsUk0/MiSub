@@ -19,19 +19,24 @@
             {{ t('subscriptions.uaLabel') }}
             <span class="text-xs text-gray-500 ml-2">{{ t('subscriptions.optionalDefault') }}</span>
         </label>
-        <select
+        <input
             id="sub-edit-ua"
             v-model="editingSubscription.customUserAgent"
+            type="text"
+            list="sub-edit-ua-presets"
+            autocomplete="off"
+            placeholder="clash-ninja/v2.4.0"
             class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md dark:text-white"
-        >
-            <option value="">{{ t('subscriptions.defaultUa') }}</option>
+        />
+        <datalist id="sub-edit-ua-presets">
+            <option value="clash-ninja/v2.4.0">Ninja</option>
             <option value="MiSub">MiSub</option>
             <option value="clash-verge/v2.4.3">Clash Verge</option>
             <option value="clash.meta">Clash Meta</option>
             <option value="v2rayN/7.23">v2rayN</option>
             <option value="Shadowrocket/1.9.0">Shadowrocket</option>
             <option value="Mozilla/5.0">Mozilla</option>
-        </select>
+        </datalist>
         <p
             v-if="editingSubscription.customUserAgent"
             class="text-xs text-gray-500 dark:text-gray-400 mt-1"
