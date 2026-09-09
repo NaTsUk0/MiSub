@@ -77,6 +77,25 @@ MATCH,MyGroup
         expect(fetch).not.toHaveBeenCalled();
     });
 
+    it('applies global custom Clash rules after rendering', async () => {
+        const result = await ProcessorService.renderOutput({
+            targetFormat: 'clash',
+            combinedNodeList: NODE_LIST,
+            subName: 'Demo',
+            config: {
+                customClashRules: 'DOMAIN-SUFFIX,gstatic.com,🚀 节点选择\nMATCH,🚀 节点选择',
+            },
+            builtinOptions: { ruleLevel: 'base' },
+            managedConfigUrl: 'https://example.com/sub',
+            storageAdapter,
+        });
+        const parsed = (await import('js-yaml')).default.load(result.content);
+
+        expect(parsed.rules[0]).toBe('DOMAIN-SUFFIX,gstatic.com,🚀 节点选择');
+        expect(parsed.rules.at(-1)).toBe('MATCH,🚀 节点选择');
+        expect(parsed.rules.filter((rule) => rule.startsWith('MATCH,'))).toHaveLength(1);
+    });
+
     it('renders remote Clash YAML profile templates by injecting MiSub nodes locally', async () => {
         vi.stubGlobal(
             'fetch',
