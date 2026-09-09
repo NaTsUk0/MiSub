@@ -11,13 +11,11 @@ export const useVersionStore = defineStore('version', () => {
     const showUpdateNotice = ref(false);
     const upstreamRepo = 'imzyb/MiSub';
 
-    // 本地更新日志 (v2.7.0)
-    const localChangelog = `✨ **订阅生成链路、内置模板与安全兼容性增强**
-- **第三方转换链路修复**：第三方后端模式会先由 MiSub 完成节点预处理，再以内联节点发送给转换后端，避免外部服务回调 MiSub 链接时出现 \`No nodes were found!\`。
-- **多节点外部转换兼容**：多节点内联统一使用 \`|\` 分隔，提升 FatSheep / subconverter 兼容性。
-- **内置模板与规则集增强**：补强 ACL4SSR provider、远程规则集、Sing-Box 规则源、Hysteria2 realm 等输出细节。
-- **服务集成 Cron 兼容恢复**：\`/cron?secret=[REDACTED]\` 兼容链接与 Bearer Token Header 推荐方式均可使用。
-- **UI 与导入体验优化**：优化模板变量提示、自定义规则模板、客户端导入链接和节点刷新错误提示。`;
+    // 本地更新日志 (v2.7.1)
+    const localChangelog = `✨ **跨客户端 Clash 规则统一覆写**
+- **自定义 Clash 规则**：在服务设置中维护一份前置规则，Windows、Android 与 OpenClash Ninja 使用同一订阅即可同步。
+- **安全规则顺序**：自动去重并确保唯一的 \`MATCH/FINAL\` 规则位于最后，避免后续规则永远无法命中。
+- **Ninja 数据兼容**：规则注入后仍原样保留 \`#!PASS-INFO\` 与完整的 \`type: ninja\` 节点字段。`;
 
     // --- Getters ---
     const hasUpdate = computed(() => {
