@@ -18,6 +18,7 @@ import {
     pruneProxyGroups,
 } from './builtin-rules-provider.js';
 import yaml from 'js-yaml';
+import { collectNinjaPassInfo, prependNinjaPassInfo } from '../../utils/ninja-node-codec.js';
 
 /**
  * 清理字符串中的控制字符（保留换行和制表符）
@@ -76,7 +77,7 @@ function deduplicateNames(proxies) {
  */
 function stripInternalProxyFields(proxies) {
     return proxies.map((proxy) => {
-        const { metadata, ...publicProxy } = proxy;
+        const { metadata, __ninjaPassInfo, __isNinjaProxy, ...publicProxy } = proxy;
         return publicProxy;
     });
 }
@@ -157,6 +158,7 @@ export function generateBuiltinClashConfig(nodeList, options = {}) {
 
     // 转换为 Clash 代理对象
     let proxies = urlsToClashProxies(nodeUrls, options);
+    const ninjaPassInfo = collectNinjaPassInfo(proxies);
 
     // 清理控制字符
     proxies = deepCleanControlChars(proxies);
@@ -254,7 +256,7 @@ export function generateBuiltinClashConfig(nodeList, options = {}) {
         }
 
         // 最终清理，确保输出没有控制字符
-        return cleanControlChars(yamlStr);
+        return prependNinjaPassInfo(cleanControlChars(yamlStr), ninjaPassInfo);
     } catch (e) {
         console.error('[BuiltinClash] Generation failed:', e);
         // Fallback: 至少返回包含节点的有效 YAML 结构，而不是传回会导致 Clash 报错的 Base64
@@ -267,7 +269,7 @@ export function generateBuiltinClashConfig(nodeList, options = {}) {
             `proxies:\n${fallbackProxies.map((p) => `  - ${JSON.stringify(p)}`).join('\n')}\n` +
             `proxy-groups:\n  - name: ${selectGroup}\n    type: select\n    proxies: ${JSON.stringify(fallbackProxies.map((p) => p.name))}\n` +
             `rules:\n  - MATCH,${selectGroup}\n`;
-        return fallbackYaml;
+        return prependNinjaPassInfo(fallbackYaml, ninjaPassInfo);
     }
 }
 
@@ -284,6 +286,7 @@ export function generateProxiesOnly(nodeList) {
         .filter((line) => line && !line.startsWith('#'));
 
     let proxies = urlsToClashProxies(nodeUrls);
+    const ninjaPassInfo = collectNinjaPassInfo(proxies);
 
     // 清理控制字符
     proxies = deepCleanControlChars(proxies);
@@ -302,9 +305,12 @@ export function generateProxiesOnly(nodeList) {
             }
         );
 
-        return cleanControlChars(yamlStr);
+        return prependNinjaPassInfo(cleanControlChars(yamlStr), ninjaPassInfo);
     } catch (e) {
         const fallbackProxies = Array.isArray(proxies) ? stripInternalProxyFields(proxies) : [];
-        return `proxies:\n${fallbackProxies.map((p) => `  - ${JSON.stringify(p)}`).join('\n')}\n`;
+        return prependNinjaPassInfo(
+            `proxies:\n${fallbackProxies.map((p) => `  - ${JSON.stringify(p)}`).join('\n')}\n`,
+            ninjaPassInfo
+        );
     }
 }
