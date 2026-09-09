@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS = {
     builtinSkipCertVerify: false,
     builtinEnableUdp: true,
     builtinLoonSkipCertVerify: false,
+    customClashRules: '',
     enableAccessLog: false,
     accessLogPersistenceMode: 'light',
     mergeExpireStrategy: 'max',
