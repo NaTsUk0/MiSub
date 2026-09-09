@@ -1,6 +1,7 @@
 <script setup>
     import TransformCard from './ServiceSettings/TransformCard.vue';
     import DnsOverrideCard from './ServiceSettings/DnsOverrideCard.vue';
+    import ClashRulesCard from './ServiceSettings/ClashRulesCard.vue';
     import TelegramCard from './ServiceSettings/TelegramCard.vue';
     import CronCard from './ServiceSettings/CronCard.vue';
 
@@ -15,6 +16,7 @@
 <template>
     <div class="space-y-8">
         <TransformCard :settings="settings" />
+        <ClashRulesCard :settings="settings" />
         <DnsOverrideCard :settings="settings" />
         <TelegramCard :settings="settings" />
         <CronCard :settings="settings" />
