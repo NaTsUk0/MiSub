@@ -1012,6 +1012,14 @@ export const messages = {
             dnsOverrideInvalidJson: 'JSON 格式错误，请检查括号和引号。',
             dnsOverrideInvalidYaml: 'YAML 格式错误，请检查缩进和冒号语法。',
             dnsOverrideInvalidObject: 'DNS 配置必须是一个对象，不能是数组。',
+            clashRulesTitle: 'Clash 自定义前置规则',
+            clashRulesDesc: '统一写入 Windows、Android 和 OpenClash 使用的 Clash/Ninja 订阅',
+            clashRulesLabel: '每行一条规则',
+            clashRulesCount: '{count} 条规则',
+            clashRulesPlaceholder:
+                'DOMAIN-SUFFIX,gstatic.com,🚀 节点选择\nGEOSITE,category-ads-all,REJECT\nGEOIP,CN,DIRECT\nMATCH,🚀 节点选择',
+            clashRulesHint:
+                '支持纯文本或 rules: YAML 片段。自定义规则会优先匹配；MiSub 会移除重复规则，并将唯一的 MATCH/FINAL 规则放到最后。策略组名称必须与生成配置中的名称完全一致。',
             ruleTemplatesRefreshing: '刷新中…',
             ruleTemplatesRefresh: '刷新',
             ruleTemplatesNew: '新建模板',
@@ -2374,6 +2382,15 @@ export const messages = {
             dnsOverrideInvalidYaml:
                 'Invalid YAML format. Please check indentation and colon syntax.',
             dnsOverrideInvalidObject: 'DNS config must be an object, not an array.',
+            clashRulesTitle: 'Custom Clash Rules',
+            clashRulesDesc:
+                'Write the same rules into Clash/Ninja profiles used by Windows, Android, and OpenClash',
+            clashRulesLabel: 'One rule per line',
+            clashRulesCount: '{count} rules',
+            clashRulesPlaceholder:
+                'DOMAIN-SUFFIX,gstatic.com,🚀 节点选择\nGEOSITE,category-ads-all,REJECT\nGEOIP,CN,DIRECT\nMATCH,🚀 节点选择',
+            clashRulesHint:
+                'Accepts plain lines or a rules: YAML fragment. Custom rules are matched first; MiSub removes duplicates and moves the single MATCH/FINAL rule to the end. Policy group names must exactly match the generated profile.',
             ruleTemplatesRefreshing: 'Refreshing…',
             ruleTemplatesRefresh: 'Refresh',
             ruleTemplatesNew: 'New template',
