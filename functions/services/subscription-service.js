@@ -45,6 +45,7 @@ const REAL_PROXY_PROTOCOLS = [
     'socks5://',
     'socks://',
     'wireguard://',
+    'ninja://',
 ];
 
 /**
