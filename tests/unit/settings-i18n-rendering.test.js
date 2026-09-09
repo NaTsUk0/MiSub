@@ -5,6 +5,7 @@ import BasicSettings from '../../src/components/settings/sections/BasicSettings.
 import ClientSettings from '../../src/components/settings/sections/ClientSettings.vue';
 import TransformCard from '../../src/components/settings/sections/ServiceSettings/TransformCard.vue';
 import RuleTemplateManager from '../../src/components/settings/sections/ServiceSettings/RuleTemplateManager.vue';
+import ClashRulesCard from '../../src/components/settings/sections/ServiceSettings/ClashRulesCard.vue';
 import TelegramCard from '../../src/components/settings/sections/ServiceSettings/TelegramCard.vue';
 import SystemSettings from '../../src/components/settings/sections/SystemSettings.vue';
 import { createI18n } from '../../src/i18n/index.js';
@@ -185,6 +186,19 @@ describe('settings page English translations', () => {
         expect(rules.text()).toContain('Custom rule templates');
         expect(rules.text()).toContain('No custom rule templates yet');
         expectNoChineseOrKeys(rules.text());
+
+        const clashRules = mount(ClashRulesCard, {
+            props: {
+                settings: {
+                    customClashRules: 'MATCH,Proxy',
+                },
+            },
+            ...englishMountOptions(),
+        });
+
+        expect(clashRules.text()).toContain('Custom Clash Rules');
+        expect(clashRules.text()).toContain('1 rule');
+        expectNoChineseOrKeys(clashRules.text());
     });
 
     it('renders SystemSettings storage backup external api and admin security copy in English', () => {
