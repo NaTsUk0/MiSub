@@ -20,6 +20,7 @@ import { base64EncodeUtf8 } from '../modules/utils.js';
 import yaml from 'js-yaml';
 import { urlsToClashProxies } from '../utils/url-to-clash.js';
 import { resolveSafeDnsConfig } from '../modules/subscription/safe-dns.js';
+import { collectNinjaPassInfo, prependNinjaPassInfo } from '../utils/ninja-node-codec.js';
 
 function getTemplateExtension(templateUrl) {
     const raw = typeof templateUrl === 'string' ? templateUrl.trim() : '';
@@ -42,7 +43,7 @@ export function isIniTemplateSource(templateSource, builtinTemplateEntry = null)
 
 function stripInternalProxyFields(proxy) {
     if (!proxy || typeof proxy !== 'object') return proxy;
-    const { metadata, ...publicProxy } = proxy;
+    const { metadata, __ninjaPassInfo, __isNinjaProxy, ...publicProxy } = proxy;
     return publicProxy;
 }
 
@@ -86,10 +87,12 @@ export function renderClashYamlProfileTemplate(templateText, nodeList, options =
         .split(/\r?\n+/)
         .map((line) => line.trim())
         .filter((line) => line && !line.startsWith('#'));
-    const proxies = urlsToClashProxies(nodeUrls, options).map(stripInternalProxyFields);
+    const internalProxies = urlsToClashProxies(nodeUrls, options);
+    const ninjaPassInfo = collectNinjaPassInfo(internalProxies);
+    const proxies = internalProxies.map(stripInternalProxyFields);
     deduplicateProxyNames(proxies);
 
-    return yaml.dump(
+    const rendered = yaml.dump(
         {
             ...config,
             'allow-lan': false,
@@ -110,6 +113,7 @@ export function renderClashYamlProfileTemplate(templateText, nodeList, options =
             forceQuotes: false,
         }
     );
+    return prependNinjaPassInfo(rendered, ninjaPassInfo);
 }
 
 export class ProcessorService {
