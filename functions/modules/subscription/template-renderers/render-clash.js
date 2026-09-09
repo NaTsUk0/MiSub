@@ -2,6 +2,12 @@ import yaml from 'js-yaml';
 import { clashFix } from '../../../utils/format-utils.js';
 import { normalizeUnifiedTemplateModel } from '../template-model.js';
 import { DNS_PROXY_GROUP, resolveSafeDnsConfig } from '../safe-dns.js';
+import { collectNinjaPassInfo, prependNinjaPassInfo } from '../../../utils/ninja-node-codec.js';
+
+function stripInternalProxyFields(proxy) {
+    const { metadata, __ninjaPassInfo, __isNinjaProxy, ...publicProxy } = proxy || {};
+    return publicProxy;
+}
 
 function mapGroupType(type) {
     const normalized = String(type || '')
@@ -144,6 +150,8 @@ function mapRule(rule, ruleProviderMap) {
 
 export function renderClashFromTemplateModel(model) {
     const normalizedModel = normalizeUnifiedTemplateModel(model);
+    const ninjaPassInfo = collectNinjaPassInfo(normalizedModel.proxies);
+    const publicProxies = normalizedModel.proxies.map(stripInternalProxyFields);
 
     const ruleProviders = {};
     const ruleProviderMap = new Map();
@@ -196,7 +204,7 @@ export function renderClashFromTemplateModel(model) {
             mode: normalizedModel.settings?.dnsMode,
             proxyGroup: DNS_PROXY_GROUP,
         }),
-        proxies: normalizedModel.proxies,
+        proxies: publicProxies,
         'proxy-groups': normalizedModel.groups
             .filter(
                 (group) =>
@@ -241,5 +249,5 @@ export function renderClashFromTemplateModel(model) {
         forceQuotes: false,
     });
     yamlStr = clashFix(yamlStr);
-    return yamlStr;
+    return prependNinjaPassInfo(yamlStr, ninjaPassInfo);
 }
