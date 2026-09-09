@@ -21,6 +21,7 @@ import yaml from 'js-yaml';
 import { urlsToClashProxies } from '../utils/url-to-clash.js';
 import { resolveSafeDnsConfig } from '../modules/subscription/safe-dns.js';
 import { collectNinjaPassInfo, prependNinjaPassInfo } from '../utils/ninja-node-codec.js';
+import { applyCustomClashRules } from '../modules/subscription/clash-rule-overrides.js';
 
 function getTemplateExtension(templateUrl) {
     const raw = typeof templateUrl === 'string' ? templateUrl.trim() : '';
@@ -276,6 +277,10 @@ export class ProcessorService {
                 contentType = 'application/x-yaml; charset=utf-8';
             else if (targetFormat === 'singbox' || targetFormat === 'sing-box')
                 contentType = 'application/json; charset=utf-8';
+        }
+
+        if (targetFormat === 'clash') {
+            finalContent = applyCustomClashRules(finalContent, config.customClashRules);
         }
 
         return {
